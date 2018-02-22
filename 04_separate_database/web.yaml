@@ -1,0 +1,89 @@
+heat_template_version: 2016-04-08
+
+description: deploys a vm with public ip access, a dedicated system user apache2 as webserver
+
+parameters:
+  example_net:
+    type: string  
+  security_group:
+    type: string
+  public_network:
+    type: string  
+  ssh_keys: 
+    type: comma_delimited_list
+  name: 
+    type: string
+  image:
+    type: string
+  flavor:
+    type: string
+
+
+resources:
+
+  web_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: example_net}
+      security_groups: 
+        - default
+        - { get_param: security_group }
+
+  web_floating_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on: web_port
+    properties:
+      floating_network: { get_param: public_network }
+      port_id: { get_resource: web_port }
+
+  web_volume:
+   type: OS::Cinder::Volume
+   properties:
+     description: web volume 
+     name: web volume
+     size: 50 
+
+  web_server:
+    type: OS::Nova::Server
+    depends_on: web_port
+    properties:
+      user_data_format: RAW
+      user_data: { get_resource: cloud-init-config }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      name: { get_param: name }
+      networks:
+        - port: { get_resource: web_port }
+
+  web_volume_attach:
+    depends_on: [ web_server, web_volume ]
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: { get_resource: web_server }
+      volume_id: { get_resource: web_volume }
+
+  cloud-init-config:
+   # cloud init demo resource
+   type: OS::Heat::CloudConfig
+   properties:
+     cloud_config:
+       runcmd:
+         - [ /root/install_web.sh ]
+       write_files:
+         -  content: { get_file: scripts/install_web.sh }
+            permissions: 0700
+            path: /root/install_web.sh
+       users:
+           - name: workshop
+             gecos:  Workshop user
+             lock-passwd: false
+             sudo: ALL=(ALL) NOPASSWD:ALL
+             shell: /bin/bash
+             ssh-authorized-keys: { get_param: ssh_keys }
+       fs_setup:
+           - device: /dev/vdb
+             partition: none
+             label: web_volume
+             filesystem: ext4
+       mounts:
+           - [ "LABEL=web_volume", "/var/www/" ]

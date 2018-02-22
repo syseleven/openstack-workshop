@@ -1,0 +1,70 @@
+heat_template_version: 2016-04-08
+#
+# you can deploy this template using the following command:
+# 'openstack stack create -t 02d_network_with_port_and_ip.yaml full_network_example'
+# 
+
+description: deploys a network environment with a secured network port and a public floating ip. 
+
+parameters:
+ public_network:
+  type: string
+  default: ext-net
+            
+resources:
+  example_net:
+    type: OS::Neutron::Net
+    properties: 
+      name: example network
+
+  example_subnet:
+    type: OS::Neutron::Subnet
+    depends_on: example_net
+    properties:
+      name: example subnet
+      dns_nameservers:
+        - 8.8.8.8
+        - 8.8.4.4
+      network: {get_resource: example_net}
+      ip_version: 4
+      cidr: 10.0.0.0/8
+      allocation_pools:
+      - {start: 10.0.0.10, end: 10.255.255.250}
+
+  example_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info: {"network": { get_param: public_network }}
+      name: example network router
+
+  example_subnet_connect:
+    type: OS::Neutron::RouterInterface
+    depends_on: [ example_router, example_subnet ]
+    properties:
+      router: { get_resource: example_router }
+      subnet: { get_resource: example_subnet }
+
+  example_security_group:
+    type: OS::Neutron::SecurityGroup
+    depends_on: example_subnet_connect
+    properties:
+      description: Open SSH and ICMP traffic.
+      name: example security group
+      rules: 
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: tcp, port_range_min: 22, port_range_max: 22}
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: icmp}
+
+  example_port:
+    type: OS::Neutron::Port
+    depends_on: [ example_security_group, example_net ]
+    properties:
+      network: { get_resource: example_net}
+      security_groups: [{ get_resource: example_security_group }]
+
+  example_floating_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on: example_port
+    properties:
+      floating_network: { get_param: public_network }
+      port_id: { get_resource: example_port }
+

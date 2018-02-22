@@ -1,0 +1,111 @@
+heat_template_version: 2016-04-08
+#
+# you can deploy this template using the following command:
+# 'openstack stack create -t 04a_minimal_cluster.yaml -e 04a_minimal_cluster-env.yaml mini_cluster_example'
+#
+# After successful stack creation you can login with 
+# 'openstack server ssh --option "ForwardAgent=yes" -l workshop web0'
+# From there you can jump to any of your nodes. An example:
+# e.g. 'ssh <IP address of db0>'
+# 
+
+description: deploys a minimal cluster with consul as service discovery system.
+
+parameters:
+  public_network:
+    type: string
+  ssh_keys:
+    type: comma_delimited_list
+  image:
+    type: string
+  flavor_web:
+    type: string
+  flavor_db:
+    type: string
+            
+resources:
+  example_net:
+    type: OS::Neutron::Net
+    properties: 
+      name: example network
+
+  example_subnet:
+    type: OS::Neutron::Subnet
+    depends_on: example_net
+    properties:
+      name: example subnet
+      dns_nameservers:
+        - 8.8.8.8
+        - 8.8.4.4
+      network: {get_resource: example_net}
+      ip_version: 4
+      cidr: 10.0.0.0/8
+      allocation_pools:
+      - {start: 10.0.0.10, end: 10.255.255.250}
+
+  example_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info: {"network": { get_param: public_network }}
+      name: example network router
+
+  example_subnet_connect:
+    type: OS::Neutron::RouterInterface
+    depends_on: [ example_router, example_subnet ]
+    properties:
+      router: { get_resource: example_router }
+      subnet: { get_resource: example_subnet }
+
+  web_security_group:
+    type: OS::Neutron::SecurityGroup
+    depends_on: example_subnet_connect
+    properties:
+      description: Security group for our frontend webserver.
+      name: publish security group
+      rules: 
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: tcp, port_range_min: 22, port_range_max: 22}
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: tcp, port_range_min: 80, port_range_max: 80}
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: tcp, port_range_min: 443, port_range_max: 443}
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: tcp, port_range_min: 8080, port_range_max: 8080}
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: icmp}
+
+  db_security_group:
+    type: OS::Neutron::SecurityGroup
+    depends_on: example_subnet_connect
+    properties:
+      description: Security group for our db server.
+      name: publish security group
+      rules: 
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: tcp, port_range_min: 22, port_range_max: 22}
+        - {remote_ip_prefix: 0.0.0.0/0, protocol: icmp}
+
+  web_server_group:
+    type: OS::Heat::ResourceGroup
+    depends_on: [ example_net, web_security_group ]
+    properties:
+      count: 1 
+      resource_def: 
+        type: web.yaml
+        properties:
+          name: web%index%
+          example_net: { get_resource: example_net }
+          public_network: { get_param: public_network }
+          image: { get_param: image }
+          flavor: { get_param: flavor_web }
+          ssh_keys: { get_param: ssh_keys }
+          security_group: { get_resource: web_security_group }
+
+  db_server_group:
+    type: OS::Heat::ResourceGroup
+    depends_on: [ example_net, db_security_group ]
+    properties:
+      count: 1 
+      resource_def: 
+        type: db.yaml
+        properties:
+          name: db%index%
+          example_net: { get_resource: example_net }
+          image: { get_param: image }
+          flavor: { get_param: flavor_db }
+          ssh_keys: { get_param: ssh_keys }
+          security_group: { get_resource: db_security_group }
