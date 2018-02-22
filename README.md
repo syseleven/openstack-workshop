@@ -1,6 +1,11 @@
-# openstack workshop
+![Header](./header.png)
 
-A beginners guide to OpenStack API using HOT-templates
+# SysEleven Stack Workshop
+
+A beginners guide to OpenStack API using HOT-templates.
+
+Command to clone this Github repo:  
+`git clone https://github.com/syseleven/openstack-workshop.git`
 
 ## Agenda
 
@@ -23,6 +28,7 @@ A beginners guide to OpenStack API using HOT-templates
 
 ## Links
 
-- [SysEleven Stack Frontend / Dashboard](https://dashboard.cloud.syseleven.net/)
-- [SysEleven Stack Heat Templates](https://github.com/syseleven/heattemplates-examples)
-- [SysEleven Stack Documentation](http://doc.syselevenstack.com)
+- [Documentation](http://doc.syselevenstack.com)
+- [Heat Templates](https://github.com/syseleven/heattemplates-examples)
+- [Frontend / Dashboard](https://dashboard.cloud.syseleven.net/)
+
