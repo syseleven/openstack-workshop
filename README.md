@@ -20,7 +20,7 @@ Command to clone this Github repo:
 
 ## Links
 
-- [Documentation](http://doc.syselevenstack.com)
+- [Documentation](https://doc.syselevenstack.com)
 - [Heat Templates](https://github.com/syseleven/heattemplates-examples)
 - [Frontend / Dashboard](https://dashboard.cloud.syseleven.net/)
 
