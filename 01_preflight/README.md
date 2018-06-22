@@ -37,7 +37,7 @@ cat ~/.ssh/id_rsa.pub
 Now navigate to "Orchestration" --> "Stacks" and klick on "Launch Stack".  
 In the drop down field "Template" choose "URL" and paste the following URL: 
 ```
-https://raw.githubusercontent.com/syseleven/heattemplates-examples/master/gettingStarted/sysElevenStackKickstart.yaml
+https://raw.githubusercontent.com/syseleven/heat-examples/master/gettingStarted/sysElevenStackKickstart.yaml
 ```
 
 Leave any other field untouched and press "Next".
@@ -77,7 +77,7 @@ syseleven@kickstart:~$ openstack server list
 If that command works, you are able to work through the rest of this tutorial, so clone it to the working directory:
 
 ``` 
-git clone https://github.com/dschwabeS11/openstack_workshop.git
+git clone https://github.com/syseleven/openstack-workshop.git
 ```
 
 and move on to "02_network".
